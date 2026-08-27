@@ -479,7 +479,7 @@
         }
 
         // 5. ЕКСПОРТ В EXCEL (CSV)
-        function exportToCSV() {
+         function exportToCSV() {
             triggerVibration();
             let history = JSON.parse(localStorage.getItem('regaDataV3')) || [];
             if (history.length === 0) {
@@ -487,7 +487,46 @@
                 return;
             }
 
-            // Формуємо заголовки колонок
+            let csvContent = "Data,Hora,Valvula,Entrada,Saida,Vasos,Drenagem(%)\n";
+            history.forEach(row => {
+                let cleanResult = row.result.replace('%', '').trim();
+                csvContent += `${row.date},${row.time},${row.valvula},${row.entrada},${row.saida},${row.vasos || ''},${cleanResult}\n`;
+            });
+
+            const dateSuffix = new Date().toISOString().slice(0,10);
+            const fileName = `drenagem_${dateSuffix}.csv`;
+
+            // Створюємо файл
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const file = new File([blob], fileName, { type: 'text/csv' });
+
+            // Перевіряємо, чи підтримує телефон поширення файлів
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({
+                    files: [file],
+                    title: 'Exportação de Drenagem',
+                    text: `Dados de drenagem do dia ${dateSuffix}`
+                }).then(() => {
+                    showToast("Enviado com sucesso! 📤");
+                }).catch(err => {
+                    console.log('Помилка при поширенні:', err);
+                    // Якщо користувач закрив меню, нічого не робимо
+                });
+            } else {
+                // Якщо телефон не підтримує Share API (наприклад, старий браузер), качаємо класично
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showToast("Transferido para o dispositivo! 📥");
+            }
+        }
+
+        // Формуємо заголовки колонок
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Data,Hora,Valvula,Entrada,Saida,Vasos,Drenagem(%)\n";
 
