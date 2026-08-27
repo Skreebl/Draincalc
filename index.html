@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CalcDrain</title>
+    <title>BoraRegar</title>
     <style>
         html, body {
             height: 100%;
@@ -185,7 +185,6 @@
             bottom: 110px;
         }
         
-        /* Стиль для кнопок в історії */
         .history-controls {
             width: 100%;
             display: flex;
@@ -206,11 +205,12 @@
         .btn-export { background-color: #28a745; }
         .btn-clear { background-color: #dc3545; }
     </style>
+    <!-- ЗВЕРНИ УВАГУ: Шляхи з крапкою для нового репозиторію -->
     <link rel="manifest" href="manifest.json" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="CalcDrain" />
-    <meta name="apple-mobile-web-app-title" content="CalcDrain" />
+    <meta name="application-name" content="BoraRegar" />
+    <meta name="apple-mobile-web-app-title" content="BoraRegar" />
     <meta name="msapplication-starturl" content="./index.html" />
 </head>
 <body>
@@ -277,7 +277,7 @@
             </div>
             
             <div class="history-controls">
-                <button class="btn-export" onclick="exportToCSV()">📥 Excel (CSV)</button>
+                <button class="btn-export" onclick="exportToCSV()">📤 Partilhar CSV</button>
                 <button class="btn-clear" onclick="clearHistory()">🗑️ Limpar Tudo</button>
             </div>
         </div>
@@ -292,40 +292,37 @@
     </div>
 
     <script>
-        // --- 1. РЕЄСТРАЦІЯ SERVICE WORKER (ОФЛАЙН РЕЖИМ) ---
+        // 1. РЕЄСТРАЦІЯ SERVICE WORKER
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => {
-                    console.log('Помилка Service Worker:', err);
+                    console.log('Помилка SW:', err);
                 });
             });
         }
 
-        // --- 2. БЛОКУВАННЯ ЕКРАНА (WAKE LOCK API) ---
+        // 2. БЛОКУВАННЯ ЕКРАНА
         let wakeLock = null;
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                 }
-            } catch (err) {
-                console.log('Wake Lock помилка:', err);
-            }
+            } catch (err) {}
         }
-        
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') requestWakeLock();
         });
-        requestWakeLock(); // Викликаємо при старті
+        requestWakeLock(); 
 
-        // --- 3. ВІБРОВІДГУК ---
+        // 3. ВІБРАЦІЯ
         function triggerVibration() {
             if (navigator.vibrate) {
-                navigator.vibrate(40); // Легка вібрація 40 мілісекунд
+                navigator.vibrate(40);
             }
         }
 
-        // --- ПОВІДОМЛЕННЯ (TOAST) ---
+        // ПОВІДОМЛЕННЯ (TOAST)
         function showToast(message) {
             const toast = document.getElementById("toast-msg");
             toast.textContent = message;
@@ -333,7 +330,7 @@
             setTimeout(() => { toast.classList.remove("show"); }, 2000);
         }
 
-        // --- ПЕРЕМИКАННЯ ЕКРАНІВ ТА СВАЙПИ ---
+        // ПЕРЕМИКАННЯ ЕКРАНІВ
         function switchView(viewName) {
             triggerVibration();
             const calcView = document.getElementById("calc-view");
@@ -364,7 +361,7 @@
         document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
         document.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); });
 
-        // --- ЛОГІКА КАЛЬКУЛЯТОРА ---
+        // ЛОГІКА КАЛЬКУЛЯТОРА
         let activeInput = document.getElementById("col0"); 
         document.querySelectorAll("input").forEach(input => {
             input.addEventListener("click", () => { activeInput = input; });
@@ -452,8 +449,6 @@
             
             showToast("Guardado com sucesso! ✅");
         });
-
-        // --- ЛОГІКА ІСТОРІЇ (Видалення, Експорт, Редагування) ---
         
         function deleteEntry(index) {
             triggerVibration();
@@ -465,9 +460,8 @@
             }
         }
 
-        // 4. ФУНКЦІЯ ВИДАЛЕННЯ ЦІЛОГО ДНЯ
         function deleteDay(dateStr, event) {
-            event.preventDefault(); // Запобігає відкриттю/закриттю списку при натисканні на кнопку
+            event.preventDefault(); 
             triggerVibration();
             if(confirm(`Tem a certeza que deseja apagar todos os dados do dia ${dateStr}?`)) {
                 let history = JSON.parse(localStorage.getItem('regaDataV3')) || [];
@@ -478,7 +472,7 @@
             }
         }
 
-         // 5. ЕКСПОРТ В EXCEL (ЧЕРЕЗ МЕНЮ "ПОДІЛИТИСЯ")
+        // БЕЗПЕЧНИЙ ЕКСПОРТ (З РЕЗЕРВНИМ ЗАВАНТАЖЕННЯМ)
         function exportToCSV() {
             triggerVibration();
             let history = JSON.parse(localStorage.getItem('regaDataV3')) || [];
@@ -495,35 +489,40 @@
 
             const dateSuffix = new Date().toISOString().slice(0,10);
             const fileName = `drenagem_${dateSuffix}.csv`;
-
-            // Створюємо файл
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const file = new File([blob], fileName, { type: 'text/csv' });
 
-            // Перевіряємо, чи підтримує телефон поширення файлів
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({
-                    files: [file],
-                    title: 'Exportação de Drenagem',
-                    text: `Dados de drenagem do dia ${dateSuffix}`
-                }).then(() => {
-                    showToast("Enviado com sucesso! 📤");
-                }).catch(err => {
-                    console.log('Помилка при поширенні:', err);
-                    // Якщо користувач закрив меню, нічого не робимо
-                });
-            } else {
-                // Якщо телефон не підтримує Share API (наприклад, старий браузер), качаємо класично
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                showToast("Transferido para o dispositivo! 📥");
+            try {
+                const file = new File([blob], fileName, { type: 'text/csv' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: 'Exportação de Drenagem',
+                        text: `Dados de drenagem do dia ${dateSuffix}`
+                    }).then(() => {
+                        showToast("Enviado com sucesso! 📤");
+                    }).catch(err => {
+                        console.log('Помилка при поширенні:', err);
+                    });
+                } else {
+                    downloadFallback(blob, fileName);
+                }
+            } catch (error) {
+                downloadFallback(blob, fileName);
+            }
+        }
 
+        // РЕЗЕРВНА ФУНКЦІЯ СКАЧУВАННЯ
+        function downloadFallback(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast("Transferido para o dispositivo! 📥");
+        }
 
         function editEntry(index) {
             triggerVibration();
@@ -598,7 +597,6 @@
 
                 dateDetails.style.marginBottom = "12px";
                 
-                // Додана кнопка видалення дня прямо в заголовок
                 dateDetails.innerHTML = `
                 <summary style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; padding: 12px; background: #4285F4; color: white; border-radius: 8px; outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <span>📅 Data: ${date}</span>
@@ -712,4 +710,3 @@
     </script>
 </body>
 </html>
-
