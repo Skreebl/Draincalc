@@ -1,7 +1,7 @@
 {
-  "id": "calculadora v2",
-  "name": "DrainCalc",
-  "short_name": "Draincalc",
+  "id": "calculadora v0",
+  "name": "CalcDrain",
+  "short_name": "CalcDrain",
   "start_url": "/Draincalc/index.html",
   "scope": "/Draincalc/",
   "display": "standalone",
