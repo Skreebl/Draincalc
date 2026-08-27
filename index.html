@@ -472,7 +472,7 @@
             }
         }
 
-        // БЕЗПЕЧНИЙ ЕКСПОРТ (З РЕЗЕРВНИМ ЗАВАНТАЖЕННЯМ)
+        // БЕЗПЕЧНИЙ ЕКСПОРТ (З РЕЗЕРВНИМ ЗАВАНТАЖЕННЯМ ТА ПРАВИЛЬНИМ ФОРМАТУВАННЯМ)
         function exportToCSV() {
             triggerVibration();
             let history = JSON.parse(localStorage.getItem('regaDataV3')) || [];
@@ -481,10 +481,15 @@
                 return;
             }
 
-            let csvContent = "Data,Hora,Valvula,Entrada,Saida,Vasos,Drenagem(%)\n";
+            // Додаємо BOM (\uFEFF), щоб Excel гарантовано правильно читав кодування UTF-8
+            let csvContent = "\uFEFFData;Hora;Válvula;Vasos;Entrada;Saída;Drenagem (%)\n";
+            
             history.forEach(row => {
-                let cleanResult = row.result.replace('%', '').trim();
-                csvContent += `${row.date},${row.time},${row.valvula},${row.entrada},${row.saida},${row.vasos || ''},${cleanResult}\n`;
+                // Прибираємо знак % і замінюємо крапку на кому для європейського формату чисел
+                let cleanResult = row.result.replace('%', '').trim().replace('.', ',');
+                
+                // Використовуємо крапку з комою (;) як розділювач колонок
+                csvContent += `${row.date};${row.time};${row.valvula};${row.vasos || '1'};${row.entrada};${row.saida};${cleanResult}\n`;
             });
 
             const dateSuffix = new Date().toISOString().slice(0,10);
@@ -510,6 +515,7 @@
                 downloadFallback(blob, fileName);
             }
         }
+
 
         // РЕЗЕРВНА ФУНКЦІЯ СКАЧУВАННЯ
         function downloadFallback(blob, fileName) {
