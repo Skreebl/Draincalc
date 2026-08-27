@@ -1,4 +1,4 @@
-const CACHE_NAME = 'boraregar-cache-v1';
+const CACHE_NAME = 'CalcDrain-cache-v1';
 const urlsToCache = [
   './',
   './index.html',
